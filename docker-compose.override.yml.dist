@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  php-api-training-fpm:
+    build:
+      context: ./
+      dockerfile: .docker/php/Dockerfile
+      target: dev-xdebug
+
+  php-api-training-db:
+    ports:
+      - "50001:3306"
+
+  php-api-training-web:
+    ports:
+      - "50000:80"

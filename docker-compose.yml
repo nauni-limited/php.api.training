@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+
+  php-api-training-db:
+    container_name: php-api-training-db
+    build: .docker/db
+    ports:
+      - "50001:3306"
+    environment:
+      MYSQL_DATABASE: "php_api_training"
+      MYSQL_ROOT_PASSWORD: "example"
+
+  php-api-training-db-test:
+    container_name: php-api-training-db-test
+    build: .docker/db
+    environment:
+      MYSQL_ROOT_PASSWORD: "top_secret_test_password"
+      MYSQL_DATABASE: "php_api_training_test"
+      MYSQL_USER: "php_api_training_user"
+      MYSQL_PASSWORD: "user_secret_test_password"
+    volumes:
+      - type: tmpfs
+        target: /var/lib/mysql
+
+  php-api-training-fpm:
+    container_name: php-api-training-fpm
+    build:
+      context: ./
+      dockerfile: .docker/php/Dockerfile
+      target: dev
+    environment:
+      PHP_IDE_CONFIG: "serverName=php-api-training"
+
+      APP_ENV: "dev"
+      APP_SECRET: "bdc6c3bd25b539b62994d825de84875e"
+      KERNEL_CLASS: App\Kernel
+
+      DATABASE_USERNAME: "root"
+      DATABASE_PASSWORD: "example"
+      DATABASE_NAME: "php_api_training"
+      DATABASE_URL: "mysql://root:example@php-api-training-db:3306/php_api_training?serverVersion=8.0"
+      DOCTRINE_DEV_MODE: "true"
+
+      PATH: "/var/local/bin:/var/local/src/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - php-api-training-db
+    volumes:
+      - ./:/var/local/src:delegated
+    stdin_open: true
+    tty: true
+
+  php-api-training-web:
+    container_name: php-api-training-web
+    build: .docker/web
+    depends_on:
+      - php-api-training-fpm
+    volumes:
+      - ./:/var/local/src:delegated
+    ports:
+      - "50000:80"

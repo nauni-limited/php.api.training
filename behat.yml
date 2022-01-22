@@ -1,0 +1,10 @@
+default:
+  suites:
+    controller:
+      paths:
+        - %paths.base%/features/Controller
+    command:
+      paths:
+        - %paths.base%/features/Command
+  formatters:
+    pretty: true

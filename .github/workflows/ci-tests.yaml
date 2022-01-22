@@ -1,0 +1,220 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+
+  build-fpm:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Build PHP Image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: .docker/php/Dockerfile
+          target: test
+          build-args: |
+            UID=1001
+            GID=116
+          tags: nauni-limited/php-training-api:fpm
+          outputs: type=docker,dest=/tmp/php-api-training-fpm.tar
+      -
+        name: Upload PHP artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: php-api-training-fpm
+          path: /tmp/php-api-training-fpm.tar
+
+  build-mysql:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Build Mysql Image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: .docker/db/Dockerfile
+          tags: nauni-limited/php-training-api:mysql
+          outputs: type=docker,dest=/tmp/php-api-training-mysql.tar
+      -
+        name: Upload MYSQL artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: php-api-training-mysql
+          path: /tmp/php-api-training-mysql.tar
+
+  php-stan:
+    needs: build-fpm
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: php-api-training-fpm
+          path: /tmp
+      -
+        name: Load Docker image
+        run: |
+          docker load --input /tmp/php-api-training-fpm.tar
+      -
+        name: PHP Stan check src directory
+        run: |
+          docker run nauni-limited/php-training-api:fpm \
+            vendor/bin/phpstan analyse \
+              --level=max \
+              --configuration=phpstan-src.neon \
+              src \
+            && echo "No issues detected!"
+      -
+        name: PHP Stan check tests directory
+        run: |
+          docker run nauni-limited/php-training-api:fpm \
+            vendor/bin/phpstan analyse \
+              --level=max \
+              --configuration=phpstan-tests.neon \
+              tests \
+            && echo "No issues detected!"
+
+  coding-standards:
+    needs: build-fpm
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: php-api-training-fpm
+          path: /tmp
+      -
+        name: Load Docker image
+        run: |
+          docker load --input /tmp/php-api-training-fpm.tar
+      -
+        name: PHP CS
+        run: |
+          docker run nauni-limited/php-training-api:fpm \
+            vendor/bin/phpcs src tests \
+          && echo "No issues detected!"
+          
+  composer-validate:
+    needs: build-fpm
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: php-api-training-fpm
+          path: /tmp
+      -
+        name: Load Docker image
+        run: |
+          docker load --input /tmp/php-api-training-fpm.tar
+      -
+        name: Composer Validate
+        run: |
+          docker run nauni-limited/php-training-api:fpm \
+            /var/local/bin/composer validate --strict
+
+  phpunit-unit-test:
+    needs: [build-fpm]
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Download PHP artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: php-api-training-fpm
+          path: /tmp
+      -
+        name: Load PHP Docker image
+        run: |
+          docker load --input /tmp/php-api-training-fpm.tar
+      -
+        name: PHPUnit unit tests
+        run: |
+          docker run nauni-limited/php-training-api:fpm \
+            vendor/bin/phpunit tests/Unit --coverage-text
+
+  phpunit-application-test:
+    needs: [build-fpm, build-mysql]
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Download PHP artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: php-api-training-fpm
+          path: /tmp
+      -
+        name: Download MYSQL artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: php-api-training-mysql
+          path: /tmp
+      -
+        name: Load PHP Docker image
+        run: |
+          docker load --input /tmp/php-api-training-fpm.tar
+      -
+        name: Load MYSQL Docker image
+        run: |
+          docker load --input /tmp/php-api-training-mysql.tar
+      -
+        name: Start docker compose
+        run: |
+          docker-compose --file=docker-compose-test.yml up \
+              --remove-orphans \
+              --detach
+      -
+        name: Wait for startup
+        run: |
+          docker exec php-api-training-fpm sh /var/local/bin/wait-for-test-dependencies.sh
+      -
+        name: Run migrations
+        run: |
+          docker exec php-api-training-fpm console doctrine:migrations:migrate --env=test --no-interaction
+      -
+        name: PHPUnit application tests
+        run: |
+          docker exec php-api-training-fpm \
+            vendor/bin/phpunit tests/Application
