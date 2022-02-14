@@ -30,7 +30,7 @@ jobs:
           tags: nauni-limited/php-training-api:fpm
           outputs: type=docker,dest=/tmp/php-api-training-fpm.tar
       -
-        name: Upload PHP artifact
+        name: Upload PHP Artifact
         uses: actions/upload-artifact@v2
         with:
           name: php-api-training-fpm
@@ -54,7 +54,7 @@ jobs:
           tags: nauni-limited/php-training-api:mysql
           outputs: type=docker,dest=/tmp/php-api-training-mysql.tar
       -
-        name: Upload MYSQL artifact
+        name: Upload MYSQL Artifact
         uses: actions/upload-artifact@v2
         with:
           name: php-api-training-mysql
@@ -68,7 +68,7 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       -
-        name: Download artifact
+        name: Download PHP Artifact
         uses: actions/download-artifact@v2
         with:
           name: php-api-training-fpm
@@ -78,7 +78,7 @@ jobs:
         run: |
           docker load --input /tmp/php-api-training-fpm.tar
       -
-        name: PHP Stan check src directory
+        name: PHP Stan Check src Directory
         run: |
           docker run nauni-limited/php-training-api:fpm \
             vendor/bin/phpstan analyse \
@@ -87,7 +87,7 @@ jobs:
               src \
             && echo "No issues detected!"
       -
-        name: PHP Stan check tests directory
+        name: PHP Stan Check tests Directory
         run: |
           docker run nauni-limited/php-training-api:fpm \
             vendor/bin/phpstan analyse \
@@ -104,13 +104,13 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       -
-        name: Download artifact
+        name: Download PHP Artifact
         uses: actions/download-artifact@v2
         with:
           name: php-api-training-fpm
           path: /tmp
       -
-        name: Load Docker image
+        name: Load Docker Image
         run: |
           docker load --input /tmp/php-api-training-fpm.tar
       -
@@ -128,13 +128,13 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       -
-        name: Download artifact
+        name: Download PHP Artifact
         uses: actions/download-artifact@v2
         with:
           name: php-api-training-fpm
           path: /tmp
       -
-        name: Load Docker image
+        name: Load Docker Image
         run: |
           docker load --input /tmp/php-api-training-fpm.tar
       -
@@ -154,20 +154,60 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       -
-        name: Download PHP artifact
+        name: Download PHP Artifact
         uses: actions/download-artifact@v2
         with:
           name: php-api-training-fpm
           path: /tmp
       -
-        name: Load PHP Docker image
+        name: Load PHP Docker Image
+        run: |
+          docker load --input /tmp/php-api-training-fpm.tar
+      -
+        name: Create Coverage Directory
+        run: |
+          mkdir -p /tmp/coverage
+      -
+        name: PHPUnit Unit Tests
+        run: |
+          docker run --mount type=bind,source=/tmp/coverage,target=/tmp/coverage nauni-limited/php-training-api:fpm \
+            vendor/bin/phpunit tests/Unit \
+              --coverage-text \
+              --coverage-xml=/tmp/coverage/coverage-xml \
+              --log-junit=/tmp/coverage/junit.xml
+      -
+        name: Upload PHP Unit Coverage Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage
+          path: /tmp/coverage
+
+
+  phpunit-integration-test:
+    needs: [build-fpm]
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Download PHP Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: php-api-training-fpm
+          path: /tmp
+      -
+        name: Load PHP Docker Image
         run: |
           docker load --input /tmp/php-api-training-fpm.tar
       -
         name: PHPUnit unit tests
         run: |
           docker run nauni-limited/php-training-api:fpm \
-            vendor/bin/phpunit tests/Unit --coverage-text
+            vendor/bin/phpunit tests/Integration --coverage-text
 
   phpunit-application-test:
     needs: [build-fpm, build-mysql]
@@ -180,19 +220,19 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       -
-        name: Download PHP artifact
+        name: Download PHP Artifact
         uses: actions/download-artifact@v2
         with:
           name: php-api-training-fpm
           path: /tmp
       -
-        name: Download MYSQL artifact
+        name: Download MYSQL Artifact
         uses: actions/download-artifact@v2
         with:
           name: php-api-training-mysql
           path: /tmp
       -
-        name: Load PHP Docker image
+        name: Load PHP Docker Image
         run: |
           docker load --input /tmp/php-api-training-fpm.tar
       -
@@ -200,17 +240,17 @@ jobs:
         run: |
           docker load --input /tmp/php-api-training-mysql.tar
       -
-        name: Start docker compose
+        name: Start docker-compose
         run: |
           docker-compose --file=docker-compose-test.yml up \
               --remove-orphans \
               --detach
       -
-        name: Wait for startup
+        name: Wait for Startup
         run: |
           docker exec php-api-training-fpm sh /var/local/bin/wait-for-test-dependencies.sh
       -
-        name: Run migrations
+        name: Run Migrations
         run: |
           docker exec php-api-training-fpm console doctrine:migrations:migrate --env=test --no-interaction
       -
@@ -218,3 +258,34 @@ jobs:
         run: |
           docker exec php-api-training-fpm \
             vendor/bin/phpunit tests/Application
+
+  infection-tests:
+    needs: [phpunit-unit-test]
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Download PHP Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: php-api-training-fpm
+          path: /tmp
+      -
+        name: Load PHP Docker Image
+        run: |
+          docker load --input /tmp/php-api-training-fpm.tar
+      -
+        name: Download Coverage
+        uses: actions/download-artifact@v2
+        with:
+          name: coverage
+          path: /tmp/coverage
+      -
+        name: Infection Mutation Testing
+        run: |
+          docker run --mount type=bind,source=/tmp/coverage,target=/tmp/coverage nauni-limited/php-training-api:fpm vendor/bin/infection \
+            --min-covered-msi=100 -j$(nproc) \
+            --no-progress \
+            --coverage=/tmp/coverage \
+            --skip-initial-tests \
+            --only-covered \
+            --ignore-msi-with-no-mutations
