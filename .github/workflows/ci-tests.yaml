@@ -282,7 +282,7 @@ jobs:
       -
         name: Infection Mutation Testing
         run: |
-          docker exec tickr-app-backend-test-fpm vendor/bin/infection \
+          docker run --mount type=bind,source="/tmp/covarage",target=/tmp/coverage nauni-limited/php-training-api:fpm vendor/bin/infection \
             --min-covered-msi=100 -j$(nproc) \
             --no-progress \
             --coverage=/tmp/coverage \
