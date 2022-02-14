@@ -166,7 +166,9 @@ jobs:
       -
         name: PHPUnit unit tests
         run: |
-          docker run nauni-limited/php-training-api:fpm --mount type=bind,source=/tmp/covarage,target=/tmp/coverage \
+          docker run \
+            --mount type=bind,source=/tmp/covarage,target=/tmp/coverage \
+            nauni-limited/php-training-api:fpm \ 
             vendor/bin/phpunit tests/Unit \
               --coverage-text \
               --coverage-xml=/tmp/coverage/coverage-xml \
