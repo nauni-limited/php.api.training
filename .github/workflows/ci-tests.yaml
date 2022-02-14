@@ -167,7 +167,43 @@ jobs:
         name: PHPUnit unit tests
         run: |
           docker run nauni-limited/php-training-api:fpm \
-            vendor/bin/phpunit tests/Unit --coverage-text
+            vendor/bin/phpunit tests/Unit \
+              --coverage-text \
+              --coverage-xml=/tmp/coverage/coverage-xml \
+              --log-junit=/tmp/coverage/junit.xml
+      -
+        name: Upload PHP Unit Coverage
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage
+          path: /tmp/coverage
+
+
+  phpunit-integration-test:
+    needs: [build-fpm]
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Download PHP artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: php-api-training-fpm
+          path: /tmp
+      -
+        name: Load PHP Docker image
+        run: |
+          docker load --input /tmp/php-api-training-fpm.tar
+      -
+        name: PHPUnit unit tests
+        run: |
+          docker run nauni-limited/php-training-api:fpm \
+            vendor/bin/phpunit tests/Integration --coverage-text
 
   phpunit-application-test:
     needs: [build-fpm, build-mysql]
@@ -218,3 +254,34 @@ jobs:
         run: |
           docker exec php-api-training-fpm \
             vendor/bin/phpunit tests/Application
+
+  infection-tests:
+    needs: [phpunit-unit-test]
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Download PHP artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: php-api-training-fpm
+          path: /tmp
+      -
+        name: Load PHP Docker image
+        run: |
+          docker load --input /tmp/php-api-training-fpm.tar
+      -
+        name: Download Coverage
+        uses: actions/download-artifact@v2
+        with:
+          name: coverage
+          path: /tmp/coverage
+      -
+        name: Infection Mutation Testing
+        run: |
+          docker exec tickr-app-backend-test-fpm vendor/bin/infection \
+            --min-covered-msi=100 -j$(nproc) \
+            --no-progress \
+            --coverage=/tmp/coverage \
+            --skip-initial-tests \
+            --only-covered \
+            --ignore-msi-with-no-mutations
