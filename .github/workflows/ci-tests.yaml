@@ -164,7 +164,7 @@ jobs:
         run: |
           docker load --input /tmp/php-api-training-fpm.tar
       -
-        name: X
+        name: Make
         run: |
           mkdir -p /tmp/coverage
       -
