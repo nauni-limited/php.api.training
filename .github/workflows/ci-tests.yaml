@@ -171,7 +171,6 @@ jobs:
         name: PHPUnit unit tests
         run: |
           docker run \
-            --mount type=bind,source=/tmp/coverage,target=/tmp/coverage \
             nauni-limited/php-training-api:fpm \ 
             vendor/bin/phpunit tests/Unit \
               --coverage-text \
