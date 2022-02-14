@@ -98,7 +98,8 @@ RUN apk --no-cache add --virtual .build-dependency \
 
 USER $USER
 COPY . .
-RUN /var/local/bin/composer install \
+RUN mkdir -p /tmp/coverage \
+    /var/local/bin/composer install \
             --no-interaction \
             --prefer-dist \
             --optimize-autoloader \
