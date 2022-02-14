@@ -26,7 +26,7 @@ class Task
     private ?string $description;
 
     #[Column(type: 'datetime', nullable: true)]
-    private ?DateTime $deadline;
+    private ?\DateTimeImmutable $deadline;
 
     #[Column(type: 'boolean', options: ["default" => false])]
     private bool $completed = false;
@@ -64,12 +64,12 @@ class Task
         return $this;
     }
 
-    public function getDeadline(): ?DateTime
+    public function getDeadline(): ?\DateTimeImmutable
     {
         return $this->deadline;
     }
 
-    public function setDeadline(?DateTime $deadline): self
+    public function setDeadline(?\DateTimeImmutable $deadline): self
     {
         $this->deadline = $deadline;
         return $this;

@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use App\Entity\Task;
+use App\Form\TaskGetFormType;
+use App\Form\TaskPostFormType;
 use DateTime;
 use Doctrine\Persistence\ManagerRegistry;
 use Nauni\Bundle\NauniTestSuiteBundle\Attribute\Suite;
@@ -22,7 +24,7 @@ use function json_decode;
 class TaskController extends AbstractController
 {
     public function __construct(
-        private ManagerRegistry $doctrine
+        private ManagerRegistry $doctrine,
     ) {
     }
 
@@ -41,6 +43,13 @@ class TaskController extends AbstractController
     #[Route('/task/{id}', name: 'get_task', methods: ['GET', 'HEAD'])]
     public function getTask(int $id): Response
     {
+        if (!$this->createForm(
+                TaskGetFormType::class,
+                new Task())->submit(['id' => $id]
+        )->isValid()) {
+            return (new Response())->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+        };
+
         $task = $this->doctrine
             ->getRepository(Task::class)
             ->find($id);
@@ -62,14 +71,24 @@ class TaskController extends AbstractController
         $postData = json_decode($content, true);
         assert(is_array($postData));
 
-        $task = (new Task())
-            ->setTitle($postData['title'])
-            ->setDescription($postData['description'])
-            ->setDeadline(new DateTime($postData['deadline']))
-            ->setCompleted($postData['completed']);
+        $form = $this->createForm(
+            TaskPostFormType::class,
+            new Task()
+        )->submit($postData);
+
+        if (!$form->isValid()) {
+            $errors = [];
+            foreach ($form->getErrors() as $error) {
+                $errors[] = $error->getMessage();
+            }
+
+            return (new Response())
+                ->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY)
+                ->setContent(json_encode($errors));
+        };
 
         $entityManager = $this->doctrine->getManager();
-        $entityManager->persist($task);
+        $entityManager->persist($form->getData());
         $entityManager->flush();
 
         return (new Response())->setStatusCode(Response::HTTP_CREATED);
