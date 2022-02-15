@@ -3,7 +3,7 @@
 namespace App\Tests\Unit\Entity;
 
 use App\Entity\Task;
-use DateTime;
+use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 
 class TaskTest extends TestCase
@@ -35,13 +35,13 @@ class TaskTest extends TestCase
 
     public function testSetDeadLine(): void
     {
-        $task = (new Task())->setDeadline(new DateTime('2020-01-04 10:00:00'));
+        $task = (new Task())->setDeadline(new DateTimeImmutable('2020-01-04 10:00:00'));
         self::assertEquals('2020-01-04 10:00:00', $task->getDeadline()?->format('Y-m-d H:i:s'));
     }
 
     public function testSetDeadLineAllowsNull(): void
     {
-        $task = (new Task())->setDeadline(new DateTime('2020-01-04 10:00:00'));
+        $task = (new Task())->setDeadline(new DateTimeImmutable('2020-01-04 10:00:00'));
         $task->setDeadline(null);
         self::assertNull($task->getDeadline()?->format('Y-m-d H:i:s'));
     }
@@ -64,7 +64,7 @@ class TaskTest extends TestCase
             ->setId(1)
             ->setTitle('Title')
             ->setDescription('Description')
-            ->setDeadline(new DateTime('2021-05-05 16:00'))
+            ->setDeadline(new DateTimeImmutable('2021-05-05 16:00'))
             ->setCompleted(true);
         self::assertEquals(
             [

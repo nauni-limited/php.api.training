@@ -3,7 +3,7 @@
 namespace App\Tests\Application\Controller;
 
 use App\Entity\Task;
-use DateTime;
+use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Registry;
 use Doctrine\ORM\EntityManager;
 use Nauni\Bundle\NauniTestSuiteBundle\Attribute\Suite;
@@ -55,7 +55,7 @@ class TaskControllerTest extends WebTestCase
             (new Task())
                 ->setTitle('Title')
                 ->setDescription('Description')
-                ->setDeadline(new DateTime('2021-04-06 17:00'))
+                ->setDeadline(new DateTimeImmutable('2021-04-06 17:00'))
                 ->setCompleted(true),
             (new Task())->setTitle('Another'),
         ];
@@ -108,7 +108,7 @@ class TaskControllerTest extends WebTestCase
         $task = (new Task())
             ->setTitle('Title')
             ->setDescription('Description')
-            ->setDeadline(new DateTime('2021-04-06 17:00'))
+            ->setDeadline(new DateTimeImmutable('2021-04-06 17:00'))
             ->setCompleted(true);
 
         $this->entityManager->persist($task);
@@ -166,7 +166,7 @@ class TaskControllerTest extends WebTestCase
         $task = (new Task())
             ->setTitle('First Title')
             ->setDescription('First description')
-            ->setDeadline(new DateTime('2021-05-05 15:00'))
+            ->setDeadline(new DateTimeImmutable('2021-05-05 15:00'))
             ->setCompleted(false);
 
         $this->entityManager->persist($task);
@@ -228,7 +228,7 @@ class TaskControllerTest extends WebTestCase
         $task = (new Task())
             ->setTitle('Title')
             ->setDescription('Description')
-            ->setDeadline(new DateTime('2021-04-06 17:00'))
+            ->setDeadline(new DateTimeImmutable('2021-04-06 17:00'))
             ->setCompleted(true);
 
         $this->entityManager->persist($task);
@@ -272,7 +272,7 @@ class TaskControllerTest extends WebTestCase
         $task = (new Task())
             ->setTitle('Title')
             ->setDescription('Description')
-            ->setDeadline(new DateTime('2021-04-06 17:00'))
+            ->setDeadline(new DateTimeImmutable('2021-04-06 17:00'))
             ->setCompleted(false);
 
         $this->entityManager->persist($task);
@@ -319,8 +319,8 @@ class TaskControllerTest extends WebTestCase
         $parameters = [
             'title' => 'TestMe',
             'description' => 'MyDescription',
-            'deadline' => '2021-04-06 17:00',
-            'completed' => false,
+            'deadline' => '2020-01-01 10:00',
+            'completed' => true,
         ];
 
         $requestParameters = json_encode($parameters);
@@ -346,6 +346,71 @@ class TaskControllerTest extends WebTestCase
         $this->assertSame($expected, $newEntity->toArray());
     }
 
+    public function testPostToTaskWithIncorrectData(): void
+    {
+        $parameters = [
+            'title' => null,
+            'description' => true,
+            'deadline' => '2020-01-01',
+            'completed' => null,
+        ];
+
+        $requestParameters = json_encode($parameters);
+        self::assertNotFalse($requestParameters);
+
+        $this->client->request(
+            'POST',
+            '/task',
+            [],
+            [],
+            [],
+            $requestParameters,
+        );
+
+        $response = $this->client->getResponse();
+
+        $actual = $response->getStatusCode();
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $actual);
+
+        $content = $response->getContent();
+        assert(is_string($content));
+
+        $this->assertSame([
+            'title' => 'Validation Failed',
+            'errors' => [],
+            'children' => [
+                'title' => [
+                    'errors' => [
+                        0 => [
+                            'message' => 'This value is too short. It should have 3 characters or more.',
+                            'cause' => [],
+                        ],
+                    ],
+                ],
+                'description' => [
+                    'errors' => [
+                        0 => [
+                            'message' => 'This value is too short. It should have 3 characters or more.',
+                            'cause' => [],
+                        ],
+                    ],
+                ],
+                'deadline' => [
+                    'errors' => [
+                        0 => [
+                            'message' => 'Please enter a valid date and time.',
+                            'cause' => [],
+                        ],
+                    ],
+                ],
+                'completed' => [
+                    'errors' => [],
+                ],
+            ],
+        ], json_decode($content, true));
+    }
+
     public function testDeleteTaskWhenIdDoesNotExist(): void
     {
         $this->client->request('DELETE', '/task/999');
@@ -359,7 +424,7 @@ class TaskControllerTest extends WebTestCase
         $task = (new Task())
             ->setTitle('Title')
             ->setDescription('Description')
-            ->setDeadline(new DateTime('2021-04-06 17:00'))
+            ->setDeadline(new DateTimeImmutable('2021-04-06 17:00'))
             ->setCompleted(true);
 
         $this->entityManager->persist($task);

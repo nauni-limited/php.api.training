@@ -2,7 +2,7 @@
 
 namespace App\Entity;
 
-use DateTime;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\GeneratedValue;
@@ -25,8 +25,8 @@ class Task
     #[Column(type: 'text', nullable: true)]
     private ?string $description;
 
-    #[Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeImmutable $deadline;
+    #[Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $deadline;
 
     #[Column(type: 'boolean', options: ["default" => false])]
     private bool $completed = false;
@@ -64,12 +64,12 @@ class Task
         return $this;
     }
 
-    public function getDeadline(): ?\DateTimeImmutable
+    public function getDeadline(): ?DateTimeImmutable
     {
         return $this->deadline;
     }
 
-    public function setDeadline(?\DateTimeImmutable $deadline): self
+    public function setDeadline(?DateTimeImmutable $deadline): self
     {
         $this->deadline = $deadline;
         return $this;

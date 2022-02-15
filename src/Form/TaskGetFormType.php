@@ -16,7 +16,7 @@ class TaskGetFormType extends AbstractType
         $builder
             ->add('id', IntegerType::class, [
                 'required' => true,
-                'constraints' => [new GreaterThan(0)]
+                'constraints' => [new GreaterThan(0)],
             ]);
     }
 
