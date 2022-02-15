@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 use function array_merge;
 use function assert;
+use function is_string;
 use function json_decode;
 use function json_encode;
 

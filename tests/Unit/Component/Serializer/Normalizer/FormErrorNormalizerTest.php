@@ -3,12 +3,14 @@
 namespace App\Tests\Unit\Component\Serializer\Normalizer;
 
 use App\Component\Serializer\Normalizer\FormErrorNormalizer;
+use Nauni\Bundle\NauniTestSuiteBundle\Attribute\Suite;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormErrorIterator;
 use Symfony\Component\Form\FormInterface;
 
+#[Suite(['normalizer', 'form'])]
 class FormErrorNormalizerTest extends TestCase
 {
     private FormErrorNormalizer $normalizer;

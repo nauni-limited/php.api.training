@@ -8,13 +8,12 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
+use function assert;
 use function count;
 
 #[Suite(['normalizer', 'form'])]
 class FormErrorNormalizer implements NormalizerInterface, CacheableSupportsMethodInterface
 {
-    public const TITLE = 'title';
-
     /**
      * @param mixed $object
      * @param string|null $format
@@ -25,7 +24,7 @@ class FormErrorNormalizer implements NormalizerInterface, CacheableSupportsMetho
     {
         assert($object instanceof FormInterface);
         $data = [
-            'title' => $context[self::TITLE] ?? 'Validation Failed',
+            'title' => 'Validation Failed',
             'errors' => $this->convertFormErrorsToArray($object),
         ];
 
