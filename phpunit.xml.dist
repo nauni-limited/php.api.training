@@ -23,6 +23,9 @@
         <testsuite name="unit">
             <directory suffix="Test.php">/var/local/src/tests/Unit</directory>
         </testsuite>
+        <testsuite name="integration">
+            <directory suffix="Test.php">/var/local/src/tests/Integration</directory>
+        </testsuite>
         <testsuite name="application">
             <directory suffix="Test.php">/var/local/src/tests/Application</directory>
         </testsuite>

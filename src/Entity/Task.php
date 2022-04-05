@@ -2,12 +2,12 @@
 
 namespace App\Entity;
 
-use DateTime;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
-use Doctrine\ORM\Mapping\GeneratedValue;
 use Doctrine\ORM\Mapping\Id;
 use Nauni\Bundle\NauniTestSuiteBundle\Attribute\Suite;
+use Symfony\Component\Uid\Uuid;
 
 #[Suite(['entity', 'task'])]
 
@@ -15,9 +15,8 @@ use Nauni\Bundle\NauniTestSuiteBundle\Attribute\Suite;
 class Task
 {
     #[Id]
-    #[GeneratedValue]
-    #[Column(type: 'integer')]
-    private int $id;
+    #[Column(type: 'uuid', unique: true)]
+    private Uuid $uuid;
 
     #[Column(type: 'string', length: 255)]
     private string $title;
@@ -25,20 +24,20 @@ class Task
     #[Column(type: 'text', nullable: true)]
     private ?string $description;
 
-    #[Column(type: 'datetime', nullable: true)]
-    private ?DateTime $deadline;
+    #[Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $deadline;
 
     #[Column(type: 'boolean', options: ["default" => false])]
     private bool $completed = false;
 
-    public function getId(): int
+    public function getUuid(): Uuid
     {
-        return $this->id;
+        return $this->uuid;
     }
 
-    public function setId(int $id): self
+    public function setUuid(Uuid $uuid): self
     {
-        $this->id = $id;
+        $this->uuid = $uuid;
         return $this;
     }
 
@@ -64,12 +63,12 @@ class Task
         return $this;
     }
 
-    public function getDeadline(): ?DateTime
+    public function getDeadline(): ?DateTimeImmutable
     {
         return $this->deadline;
     }
 
-    public function setDeadline(?DateTime $deadline): self
+    public function setDeadline(?DateTimeImmutable $deadline): self
     {
         $this->deadline = $deadline;
         return $this;
@@ -90,7 +89,7 @@ class Task
     public function toArray(): array
     {
         return [
-            'id' => $this->getId(),
+            'uuid' => (string) $this->getUuid(),
             'title' => $this->getTitle(),
             'description' => $this->getDescription(),
             'deadline' => $this->getDeadline()?->format('Y-m-d H:i'),

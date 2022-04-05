@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Task;
-use DateTime;
+use DateTimeImmutable;
 use Doctrine\Persistence\ManagerRegistry;
 use Nauni\Bundle\NauniTestSuiteBundle\Attribute\Suite;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Uid\Uuid;
 
 use function array_map;
 use function assert;
@@ -38,12 +39,12 @@ class TaskController extends AbstractController
         return new JsonResponse($tasks, Response::HTTP_OK);
     }
 
-    #[Route('/task/{id}', name: 'get_task', methods: ['GET', 'HEAD'])]
-    public function getTask(int $id): Response
+    #[Route('/task/{uuid}', name: 'get_task', methods: ['GET', 'HEAD'])]
+    public function getTask(string $uuid): Response
     {
         $task = $this->doctrine
             ->getRepository(Task::class)
-            ->find($id);
+            ->find(new Uuid($uuid));
 
         if ($task === null) {
             return (new Response())->setStatusCode(Response::HTTP_NOT_FOUND);
@@ -63,9 +64,10 @@ class TaskController extends AbstractController
         assert(is_array($postData));
 
         $task = (new Task())
+            ->setUuid(new Uuid($postData['uuid']))
             ->setTitle($postData['title'])
             ->setDescription($postData['description'])
-            ->setDeadline(new DateTime($postData['deadline']))
+            ->setDeadline(new DateTimeImmutable($postData['deadline']))
             ->setCompleted($postData['completed']);
 
         $entityManager = $this->doctrine->getManager();
@@ -75,12 +77,12 @@ class TaskController extends AbstractController
         return (new Response())->setStatusCode(Response::HTTP_CREATED);
     }
 
-    #[Route('/task/{id}', name: 'edit_task', methods: ['PATCH'])]
-    public function editTask(int $id, Request $request): Response
+    #[Route('/task/{uuid}', name: 'edit_task', methods: ['PATCH'])]
+    public function editTask(string $uuid, Request $request): Response
     {
         $task = $this->doctrine
             ->getRepository(Task::class)
-            ->find($id);
+            ->find(new Uuid($uuid));
 
         if ($task === null) {
             return (new Response())->setStatusCode(Response::HTTP_NOT_FOUND);
@@ -95,7 +97,7 @@ class TaskController extends AbstractController
 
         foreach ($patchData as $key => $value) {
             if ($key === 'deadline') {
-                $value = new DateTime($value);
+                $value = new DateTimeImmutable($value);
             }
             $task->{'set' . $key}($value);
         }
@@ -106,12 +108,12 @@ class TaskController extends AbstractController
         return (new Response())->setStatusCode(Response::HTTP_NO_CONTENT);
     }
 
-    #[Route('/task/{id}', name: 'update_task', methods: ['PUT'])]
-    public function updateTask(int $id, Request $request): Response
+    #[Route('/task/{uuid}', name: 'update_task', methods: ['PUT'])]
+    public function updateTask(string $uuid, Request $request): Response
     {
         $task = $this->doctrine
             ->getRepository(Task::class)
-            ->find($id);
+            ->find(new Uuid($uuid));
 
         if ($task === null) {
             return (new Response())->setStatusCode(Response::HTTP_NOT_FOUND);
@@ -126,7 +128,7 @@ class TaskController extends AbstractController
 
         $task->setTitle($putData['title'])
             ->setDescription($putData['description'])
-            ->setDeadline(new DateTime($putData['deadline']))
+            ->setDeadline(new DateTimeImmutable($putData['deadline']))
             ->setCompleted($putData['completed']);
 
         $entityManager = $this->doctrine->getManager();
@@ -135,12 +137,12 @@ class TaskController extends AbstractController
         return (new Response())->setStatusCode(Response::HTTP_NO_CONTENT);
     }
 
-    #[Route('/task/{id}', name: 'delete_task', methods: ['DELETE'])]
-    public function deleteTask(int $id): Response
+    #[Route('/task/{uuid}', name: 'delete_task', methods: ['DELETE'])]
+    public function deleteTask(string $uuid): Response
     {
         $task = $this->doctrine
             ->getRepository(Task::class)
-            ->find($id);
+            ->find(new Uuid($uuid));
 
         if ($task === null) {
             return (new Response())->setStatusCode(Response::HTTP_NOT_FOUND);
